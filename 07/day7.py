@@ -1,6 +1,3 @@
-import functools
-import operator
-import itertools
 import sys
 
 from multiprocessing import Pool
@@ -18,20 +15,16 @@ def concat(a, b):
 
 
 def matches(test, items, with_concat=False):
-    ops = (operator.add, operator.mul)
-    if with_concat:
-        ops = (*ops, concat)
+    if len(items) == 1:
+        return test == items[0]
+    if items[0] >= test:
+        return False
 
-    for attempt in itertools.product(ops, repeat=len(items) - 1):
-        value = functools.reduce(
-            lambda acc, item: item[0](acc, item[1]),
-            zip(attempt, items[1:]),
-            items[0],
-        )
-        if value == test:
-            return True
-
-    return False
+    return (
+        matches(test, [items[0] + items[1], *items[2:]], with_concat)
+        or matches(test, [items[0] * items[1], *items[2:]], with_concat)
+        or (with_concat and matches(test, [concat(items[0], items[1]), *items[2:]], with_concat))
+    )
 
 
 def check_parts(equation):
@@ -46,10 +39,9 @@ def check_parts(equation):
 part1 = 0
 part2 = 0
 
-with Pool() as pool:
-    for check1, check2 in pool.imap_unordered(check_parts, equations):
-        part1 += check1
-        part2 += check2
+for check1, check2 in map(check_parts, equations):
+    part1 += check1
+    part2 += check2
 
 print("Part 1:", part1)
 print("Part 2:", part2)
